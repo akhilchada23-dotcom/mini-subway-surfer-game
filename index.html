@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Mini Subway Surfer</title>
+<style>
+  body { margin: 0; background: #a0e0ff; display: flex; justify-content: center; }
+  canvas { background: #87ceeb; display: block; margin-top: 20px; border: 3px solid #333; }
+</style>
+</head>
+<body>
+<canvas id="gameCanvas" width="400" height="700"></canvas>
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+const laneCount = 3;
+const laneWidth = canvas.width / laneCount;
+
+// Player
+const player = {
+  lane: 1,
+  width: 50,
+  height: 50,
+  color: 'red',
+  y: canvas.height - 100
+};
+
+// Obstacles & Coins
+let obstacles = [];
+let coins = [];
+
+// Game settings
+let score = 0;
+let speed = 3;
+let gameOver = false;
+
+// Key controls
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowLeft' && player.lane > 0) player.lane--;
+  if (e.key === 'ArrowRight' && player.lane < laneCount - 1) player.lane++;
+});
+
+// Spawn obstacles and coins
+function spawnObstacle() {
+  const lane = Math.floor(Math.random() * laneCount);
+  obstacles.push({ lane: lane, y: -50, width: 50, height: 50, color: 'green' });
+}
+function spawnCoin() {
+  const lane = Math.floor(Math.random() * laneCount);
+  coins.push({ lane: lane, y: -50, width: 30, height: 30, color: 'gold' });
+}
+
+// Collision detection
+function checkCollision(a, b) {
+  const ax = a.lane * laneWidth + (laneWidth - a.width) / 2;
+  const ay = a.y;
+  const bx = b.lane * laneWidth + (laneWidth - b.width) / 2;
+  const by = b.y;
+  return ax < bx + b.width &&
+         ax + a.width > bx &&
+         ay < by + b.height &&
+         ay + a.height > by;
+}
+
+// Update game
+function update() {
+  if(gameOver) return;
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Draw lanes
+  ctx.strokeStyle = 'white';
+  for(let i=1; i<laneCount; i++){
+    ctx.beginPath();
+    ctx.moveTo(i*laneWidth,0);
+    ctx.lineTo(i*laneWidth,canvas.height);
+    ctx.stroke();
+  }
+
+  // Draw player
+  const playerX = player.lane * laneWidth + (laneWidth - player.width)/2;
+  ctx.fillStyle = player.color;
+  ctx.fillRect(playerX, player.y, player.width, player.height);
+
+  // Update obstacles
+  for(let i = obstacles.length -1; i>=0; i--){
+    let obs = obstacles[i];
+    obs.y += speed;
+    ctx.fillStyle = obs.color;
+    ctx.fillRect(obs.lane * laneWidth + (laneWidth - obs.width)/2, obs.y, obs.width, obs.height);
+
+    if(checkCollision(player, obs)){
+      gameOver = true;
+      setTimeout(()=>alert("Game Over! Score: "+score),50);
+    }
+    if(obs.y > canvas.height) obstacles.splice(i,1);
+  }
+
+  // Update coins
+  for(let i = coins.length -1; i>=0; i--){
+    let coin = coins[i];
+    coin.y += speed;
+    ctx.fillStyle = coin.color;
+    ctx.beginPath();
+    ctx.arc(coin.lane * laneWidth + laneWidth/2, coin.y+coin.height/2, coin.width/2, 0, Math.PI*2);
+    ctx.fill();
+
+    if(checkCollision(player, coin)){
+      score++;
+      coins.splice(i,1);
+    }
+    if(coin.y > canvas.height) coins.splice(i,1);
+  }
+
+  // Draw score
+  ctx.fillStyle = 'black';
+  ctx.font = '20px Arial';
+  ctx.fillText("Score: " + score, 10, 30);
+
+  // Increase speed over time
+  if(score>0 && score % 10 === 0) speed = 3 + Math.floor(score/10);
+
+  requestAnimationFrame(update);
+}
+
+// Spawn intervals
+setInterval(spawnObstacle, 1500);
+setInterval(spawnCoin, 2000);
+
+// Start game
+update();
+</script>
+</body>
+</html>
